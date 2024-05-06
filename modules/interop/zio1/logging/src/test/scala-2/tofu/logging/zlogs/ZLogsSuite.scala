@@ -6,7 +6,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import derevo.derive
 import io.circe.JsonObject
-import io.circe.syntax._
+import io.circe.syntax.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.slf4j.LoggerFactory
@@ -14,13 +14,13 @@ import tofu.logging.LogTree
 import tofu.logging.derivation.loggable
 import tofu.logging.impl.ContextMarker
 import tofu.logging.zlogs.ZLogsSuite.{BarService, FooService, Name}
-import tofu.syntax.logging._
+import tofu.syntax.logging.*
 import zio.blocking.Blocking
 import zio.clock.Clock
 import zio.console.Console
-import zio._
+import zio.*
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class ZLogsSuite extends AnyFlatSpec with Matchers {
 
@@ -35,7 +35,7 @@ class ZLogsSuite extends AnyFlatSpec with Matchers {
 
     val expected = JsonObject("foo" -> "kojima".asJson, "bar" -> 2.asJson).asJson
 
-    items.map(_.getMarker).collect { case ContextMarker(ctx, _) =>
+    items.flatMap(e => Option(e.getMarkerList.asScala)).flatten.collect { case ContextMarker(ctx, _) =>
       LogTree(ctx)
     } should ===(List.fill(2)(expected))
   }
@@ -63,7 +63,7 @@ class ZLogsSuite extends AnyFlatSpec with Matchers {
     Runtime.default.unsafeRun(program.provideLayer(ctxServiceLayer >>> logLayer))
     val items    = appender.list.asScala
     val expected = JsonObject("foo" -> "abc".asJson, "bar" -> 100.asJson).asJson
-    items.map(_.getMarker).collect { case ContextMarker(ctx, _) =>
+    items.flatMap(e => Option(e.getMarkerList.asScala)).flatten.collect { case ContextMarker(ctx, _) =>
       LogTree(ctx)
     } should ===(List.fill(2)(expected))
   }

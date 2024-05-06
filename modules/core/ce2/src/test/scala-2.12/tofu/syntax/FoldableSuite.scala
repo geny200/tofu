@@ -1,16 +1,15 @@
 package tofu.syntax
 
-import cats.data.Writer
-import tofu.syntax.monadic._
-import cats.data.Chain
-import tofu.syntax.foldable._
-import cats.instances.stream._
+import cats.data.{Chain, Writer}
+import cats.instances.lazyList.*
 import org.scalatest.flatspec.AnyFlatSpec
+import tofu.syntax.collections.*
+import tofu.syntax.monadic.*
 
 class FoldableSuite extends AnyFlatSpec {
   def add(s: Int, x: Int) = x > 0 whenOpt Writer.tell(Chain(s)).as(s + x)
   def look(x: Int)        = x > 0 whenOpt Writer.tell(Chain(x)).as(x.toString)
-  val elems               = Stream.range(1, 10) #::: Stream.from(-1, -1)
+  val elems               = LazyList.range(1, 10) #::: LazyList.from(-1, -1)
 
   "foldWhileM" should "scan elements" in
     assert(

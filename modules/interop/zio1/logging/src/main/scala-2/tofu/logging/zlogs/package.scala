@@ -3,7 +3,7 @@ package tofu.logging
 import zio.{Has, UIO, URIO}
 import tofu.higherKind.Embed
 import zio.ZIO
-import zio.interop.catz._
+import zio.interop.catz.*
 
 package object zlogs {
   type ZLogs[R]    = Logs[UIO, URIO[R, *]]
@@ -19,11 +19,11 @@ package object zlogs {
   val TofuLogging: Logging[URIO[TofuLogging, *]] =
     Embed[Logging].embed(ZIO.access[TofuLogging](_.get.widen))
 
-  val TofuLogs: Logs.Universal[URIO[TofuLogs, *]] =
-    Embed[Logs.Universal].embed(ZIO.access[TofuLogs](_.get.biwiden))
+  val TofuLogs: Logging.Make[URIO[TofuLogs, *]] =
+    Embed[Logging.Make].embed(ZIO.access[TofuLogs](_.get.biwiden))
 
   object implicits {
-    implicit def tofuLogImplicit[R <: TofuLogging, E]: Logging[ZIO[R, E, *]]      = TofuLogging.widen
-    implicit def tofuLogsImplicit[R <: TofuLogs, E]: Logs.Universal[ZIO[R, E, *]] = TofuLogs.biwiden
+    implicit def tofuLogImplicit[R <: TofuLogging, E]: Logging[ZIO[R, E, *]]    = TofuLogging.widen
+    implicit def tofuLogsImplicit[R <: TofuLogs, E]: Logging.Make[ZIO[R, E, *]] = TofuLogs.biwiden
   }
 }

@@ -27,14 +27,14 @@ trait BiPrepared[U[f[_, _]], +T[_, _]] {
 abstract class LoggingBiMidBuilder extends BiBuilder[LoggingBiMid] {
 
   /** do some logging upon enter to method invocation */
-  def onEnter[F[+_, +_]: Logging.SafeBase](
+  def onEnter[F[+_, +_]: Logging.Safe](
       cls: Class[?],
       method: String,
       args: Seq[(String, LoggedValue)]
   ): F[Nothing, Unit]
 
   /** do some logging after leaving method invocation with known result or error */
-  def onLeave[F[+_, +_]: Logging.SafeBase](
+  def onLeave[F[+_, +_]: Logging.Safe](
       cls: Class[?],
       method: String,
       args: Seq[(String, LoggedValue)],
@@ -58,7 +58,7 @@ abstract class LoggingBiMidBuilder extends BiBuilder[LoggingBiMid] {
     def result: LoggingBiMid[Err, Res] = new LoggingBiMid[Err, Res] {
       private[this] val argSeq = args.toSeq
 
-      def around[F[+_, +_]: Bind: Logging.SafeBase](fa: F[Err, Res]): F[Err, Res] =
+      def around[F[+_, +_]: Bind: Logging.Safe](fa: F[Err, Res]): F[Err, Res] =
         onEnter(cls, method, argSeq) *>
           fa.tapBoth(
             err => onLeave(cls, method, argSeq, err, ok = false),
@@ -77,7 +77,7 @@ object LoggingBiMidBuilder {
   class CustomLogLevel(logLevel: Level, errorLogLevel: Level) extends LoggingBiMidBuilder {
 
     override def onEnter[F[+_, +_]](cls: Class[?], method: String, args: Seq[(String, LoggedValue)])(implicit
-        F: Logging.SafeBase[F]
+        F: Logging.Safe[F]
     ): F[Nothing, Unit] = F.write(logLevel, "entering {} {}", method, new ArgsLoggable(args))
 
     override def onLeave[F[+_, +_]](
@@ -87,7 +87,7 @@ object LoggingBiMidBuilder {
         res: LoggedValue,
         ok: Boolean
     )(implicit
-        F: Logging.SafeBase[F]
+        F: Logging.Safe[F]
     ): F[Nothing, Unit] = if (ok)
       F.write(logLevel, "leaving {} {} result is {}", method, new ArgsLoggable(args), res)
     else
