@@ -4,15 +4,15 @@ package config
 import cats.data.ReaderT
 import cats.effect.concurrent.Ref
 import cats.{Monad, Parallel}
-import tofu.concurrent.ce2._
+import tofu.concurrent.ce2.*
 import tofu.config.ConfigTContext.Fail
 import glass.Contains
-import tofu.syntax.monadic._
+import tofu.syntax.monadic.*
 import cats.MonadError
 import cats.Applicative
 import cats.~>
-import tofu.syntax.funk._
-import cats.syntax.applicativeError._
+import tofu.syntax.funk.*
+import cats.syntax.applicativeError.*
 
 trait ConfigMonad[F[_]] {
   implicit def monad: Monad[F]
@@ -44,7 +44,7 @@ object ConfigMonad {
       F: Monad[F],
       FE: Raise[F, ConfigError],
       FR: Restore[F],
-      FL: HasLocal[F, Path]
+      FL: WithLocal[F, Path]
   ): ConfigMonad[F] =
     new ConfigMonad[F] {
       val monad      = F
@@ -58,7 +58,7 @@ object ConfigMonad {
       FP: Parallel[F],
       FE: Errors[F, ConfigError],
       F: Monad[F],
-      FL: HasLocal[F, Path]
+      FL: WithLocal[F, Path]
   ): ConfigMonad[F] =
     new ConfigMonad[F] {
       val monad      = F
@@ -98,7 +98,7 @@ object ConfigTContext {
 
     val monad: Monad[ConfigT[F, *]]          = Monad[ConfigT[F, *]]
     val paralleled: Parallel[ConfigT[F, *]]  = FP.paralleled
-    val path: WithLocal[ConfigT[F, *], Path] = Local[ConfigT[F, *]].subcontext(contextPath[F]).asWithLocal
+    val path: WithLocal[ConfigT[F, *], Path] = WithLocal[ConfigT[F, *], ConfigTContext[F]].subcontext(contextPath[F])
     val config: ConfigRaise[ConfigT[F, *]]   = new ConfigRaise[ConfigT[F, *]] {
       def raise[A](err: ConfigError): ConfigT[F, A] =
         ReaderT(ctx => ctx.ref.update(_ :+ ConfigParseMessage(ctx.path, err)) *> FR.raise(Fail))
