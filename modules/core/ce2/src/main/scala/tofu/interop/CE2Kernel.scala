@@ -26,6 +26,16 @@ object CE2Kernel {
       def delay[A](a: => A): K[A] = KS.delay(a)
     }
 
+  final def mkFireBySync[I[_]: Sync, F[_]: Concurrent]: MkFireCarrier2[I, F] =
+    new MkFireCarrier2[I, F] {
+      override type Resource[G[_], A] = cats.effect.Resource[G, A]
+
+      override def makeFire : cats.effect.Resource[I, Fire[F]] =
+        cats.effect.Resource.pure[I, Fire[F]](new Fire[F] {
+          override def fireAndForget[A](fa: F[A]): F[Unit] = Concurrent[F].start(fa).void
+        })
+    }
+
   def unliftEffect[K[_]](implicit KE: Effect[K]): UnliftCarrier2[IO, K] =
     new UnliftCarrier2[IO, K] {
       def lift[A](fa: IO[A]): K[A] = Effect[K].liftIO(fa)

@@ -2,14 +2,18 @@ package tofu
 
 import cats.data.*
 import cats.{Applicative, Functor, Monoid}
-import tofu.internal.instances.{FibersInstance, FireInstance, RaceInstance}
-import tofu.internal.{Effect3Comp, EffectComp}
+import tofu.internal.instances.{FibersInstance, FireInstance, MakeFireInstance, RaceInstance}
+import tofu.internal.{Effect2Comp, Effect3Comp, EffectComp}
 
 trait Fire[F[_]] {
   def fireAndForget[A](fa: F[A]): F[Unit]
 }
 
 object Fire extends EffectComp[Fire] with FireInstance {
+  type Make[F[_], R[_[_], _]] = MakeFire.Aux[F, F, R]
+
+  def Make[F[_], R[_[_], _]](implicit makeFire: Make[F, R]): MakeFire.Aux[F, F, R] = makeFire
+
   implicit def fireForKleisli[F[_], R](implicit R0: Fire[F]): Fire[Kleisli[F, R, _]] =
     new KleisliFire[F, R] {
       override protected def alg: Fire[F] = R0
@@ -87,6 +91,22 @@ object Fire extends EffectComp[Fire] with FireInstance {
 
     override def fireAndForget[A](fa: WriterT[F, L, A]): WriterT[F, L, Unit] =
       WriterT.liftF(alg.fireAndForget(fa.run))
+  }
+}
+
+trait MakeFire[I[_], F[_]] {
+  type Resource[_[_], _]
+
+  def makeFire: Resource[I, Fire[F]]
+}
+
+object MakeFire extends Effect2Comp[MakeFire] with MakeFireInstance {
+
+  type Aux[I[_], F[_], R[_[_], _]] = MakeFire[I, F] { type Resource[G[_], A] = R[G[_], A] }
+
+  /** Partially-applied creation of Agent for better type inference */
+  final class Applier[I[_], F[_]](private val mkAgent: MakeFire[I, F]) extends AnyVal {
+    def make: mkAgent.Resource[I, Fire[F]] = mkAgent.makeFire
   }
 }
 

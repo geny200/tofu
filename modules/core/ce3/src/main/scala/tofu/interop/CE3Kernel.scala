@@ -1,28 +1,36 @@
 package tofu.interop
 
 import java.util.concurrent.TimeUnit
-
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-
-import cats.effect.kernel._
+import cats.effect.kernel.*
 import cats.effect.std.Dispatcher
 import cats.effect.unsafe.IORuntime
-import cats.effect.{Async, Fiber, IO, Sync}
+import cats.effect.{Async, Concurrent, Fiber, IO, Sync}
 import cats.{Functor, Monad, Parallel, Traverse}
 import tofu.compat.unused
-import tofu.concurrent._
+import tofu.concurrent.*
 import tofu.concurrent.impl.QVarSM
 import tofu.internal.NonTofu
-import tofu.internal.carriers._
+import tofu.internal.carriers.*
 import tofu.lift.Lift
-import tofu.syntax.monadic._
-import tofu.{Fire, Scoped, WithContext}
+import tofu.syntax.monadic.*
+import tofu.{Fire, MakeFire, Scoped, WithContext}
 
 object CE3Kernel {
   def delayViaSync[K[_]](implicit KS: Sync[K]): DelayCarrier3[K] =
     new DelayCarrier3[K] {
       def delay[A](a: => A): K[A] = KS.delay(a)
+    }
+
+  final def mkFireBySync[I[_]: Sync, F[_]: Concurrent]: MakeFire.Aux[I, F, Resource] =
+    new MkFireCarrier3[I, F] {
+      override type Resource[G[_], A] = cats.effect.Resource[G, A]
+
+      override def makeFire : cats.effect.Resource[I, Fire[F]] =
+        cats.effect.Resource.pure[I, Fire[F]](new Fire[F] {
+          override def fireAndForget[A](fa: F[A]): F[Unit] = Concurrent[F].start(fa).void
+        })
     }
 
   def unliftEffect[K[_]](implicit

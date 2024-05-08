@@ -1,7 +1,7 @@
 package tofu
 
 import cats.data.*
-import cats.effect.{Concurrent, ContextShift, Fiber, IO}
+import cats.effect.{Concurrent, ContextShift, Fiber, IO, Resource}
 import cats.{Applicative, Id}
 import tofu.concurrent.{MakeAgent, MakeSerialAgent}
 import tofu.syntax.monadic.*
@@ -12,6 +12,8 @@ import scala.annotation.nowarn
 @nowarn("msg=parameter")
 object StartSuite {
   def summonInstancesForConcurrent[F[_]: Concurrent] = {
+    implicitly[MakeFire[F, F]].makeFire
+   val t : Resource[F, Fire[F]] =   Fire.Make[F].makeFire
     Fire[F]
     Start[F]
     Race[F]
